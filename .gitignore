@@ -16,7 +16,8 @@ firmware.asm
 tasmota*.bin
 tasmota*.bin.gz
 tasmota*.map
-platformio_override.ini
+# rudo wants his overrides checked in:
+#platformio_override.ini
 
 ## Visual Studio Code specific ######
 .vscode
