@@ -398,6 +398,7 @@
 
 // Commands xdrv_05_irremote.ino
 #define D_CMND_IRSEND "IRSend"
+#define D_CMND_IRTOLERANCE "IRTolerance"
   #define D_JSON_INVALID_JSON "Invalid JSON"
   #define D_JSON_INVALID_RAWDATA "Invalid RawData"
   #define D_JSON_NO_BUFFER_SPACE "No buffer space"

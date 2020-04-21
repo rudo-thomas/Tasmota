@@ -28,11 +28,19 @@
 
 enum IrErrors { IE_NO_ERROR, IE_INVALID_RAWDATA, IE_INVALID_JSON, IE_SYNTAX_IRSEND };
 
-const char kIrRemoteCommands[] PROGMEM = "|" D_CMND_IRSEND ;
+const char kIrRemoteCommands[] PROGMEM = "|" D_CMND_IRSEND
+#ifdef USE_IR_RECEIVE
+  "|" D_CMND_IRTOLERANCE
+#endif
+  ;
 
 // Keep below IrRemoteCommand lines exactly as below as otherwise Arduino IDE prototyping will fail (#6982)
 void (* const IrRemoteCommand[])(void) PROGMEM = {
-  &CmndIrSend };
+  &CmndIrSend,
+#ifdef USE_IR_RECEIVE
+  &CmndIrTolerance,
+#endif
+};
 
 // Based on IRremoteESP8266.h enum decode_type_t
 static const uint8_t MAX_STANDARD_IR = NEC;   // this is the last code mapped to decode_type_t
@@ -80,6 +88,9 @@ void IrReceiveInit(void)
   // an IR led is at GPIO_IRRECV
   irrecv = new IRrecv(pin[GPIO_IRRECV], IR_RCV_BUFFER_SIZE, IR_RCV_TIMEOUT, IR_RCV_SAVE_BUFFER);
   irrecv->setUnknownThreshold(Settings.param[P_IR_UNKNOW_THRESHOLD]);
+  if (Settings.ir_recv_tolerance != 0) {
+    irrecv->setTolerance(Settings.ir_recv_tolerance);
+  }
   irrecv->enableIRIn();                  // Start the receiver
 
   //  AddLog_P(LOG_LEVEL_DEBUG, PSTR("IrReceive initialized"));
@@ -241,6 +252,10 @@ uint32_t IrRemoteCmndIrSendJson(void)
 
 void CmndIrSend(void)
 {
+  if (irsend == nullptr) {
+    return;
+  }
+
   uint8_t error = IE_SYNTAX_IRSEND;
 
   if (XdrvMailbox.data_len) {
@@ -271,6 +286,25 @@ void IrRemoteCmndResponse(uint32_t error)
   }
 }
 
+#ifdef USE_IR_RECEIVE
+void CmndIrTolerance(void)
+{
+  if (irrecv == nullptr) {
+    return;
+  }
+  if (XdrvMailbox.payload == 0) {
+    Settings.ir_recv_tolerance = 0;
+    irrecv->setTolerance(kTolerance);
+  } else if (XdrvMailbox.payload > 0 && XdrvMailbox.payload <= 100) {
+    Settings.ir_recv_tolerance = XdrvMailbox.payload;
+    irrecv->setTolerance(Settings.ir_recv_tolerance);
+  } else if (XdrvMailbox.data_len != 0) {
+    return;  // not querying current value or value out of range. print error
+  }
+  ResponseCmndNumber(irrecv->getTolerance());
+}
+#endif  // USE_IR_RECEIVE
+
 /*********************************************************************************************\
  * Interface
 \*********************************************************************************************/
@@ -300,7 +334,7 @@ bool Xdrv05(uint8_t function)
         irsend_active = false;  // re-enable IR reception
         break;
       case FUNC_COMMAND:
-        if (pin[GPIO_IRSEND] < 99) {
+        if (pin[GPIO_IRSEND] < 99 || pin[GPIO_IRRECV] < 99) {
           result = DecodeCommand(kIrRemoteCommands, IrRemoteCommand);
         }
         break;

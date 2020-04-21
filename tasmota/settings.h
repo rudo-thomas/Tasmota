@@ -468,8 +468,9 @@ struct SYSCFG {
   uint8_t       bri_preset_low;            // F06
   uint8_t       bri_preset_high;           // F07
   int8_t        hum_comp;                  // F08
+  uint8_t       ir_recv_tolerance;         // F09
 
-  uint8_t       free_f09[179];             // F09
+  uint8_t       free_f0a[178];             // F0A
 
   uint32_t      keeloq_master_msb;         // FBC
   uint32_t      keeloq_master_lsb;         // FC0
@@ -484,6 +485,7 @@ struct SYSCFG {
   uint32_t      cfg_timestamp;             // FF8
   uint32_t      cfg_crc32;                 // FFC
 } Settings;
+static_assert(sizeof Settings == 4096, "Settings size is not 4KiB");
 
 struct RTCRBT {
   uint16_t      valid;                     // 280 (RTC memory offset 100 - sizeof(RTCRBT))
